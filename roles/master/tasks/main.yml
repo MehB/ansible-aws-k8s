@@ -1,0 +1,88 @@
+---
+# tasks file for k8s_master
+- name: installing docker 
+  package:
+    name:
+    - docker
+    state: present
+
+- name: configuring yum repo for k8s
+  yum_repository:
+    name: kubernetes
+    description: yum for k8s
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+    enabled: yes
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    exclude:
+    - kubelet
+    - kubeadm
+    - kubectl    
+
+- name: installing kubeadm
+  yum:
+    name: kubeadm
+    disable_excludes: kubernetes
+
+- name: installing iproute-tc
+  package:
+    name:
+    - iproute-tc
+    state: present
+
+- name: enabling docker and kubelet service
+  service:
+    name: "{{ item }}"  
+    state: started
+    enabled: yes
+  loop:
+    - kubelet
+    - docker
+    
+- name: pulling all images
+  shell: kubeadm config images pull
+
+- name: copying content of the daemon.json file
+  copy:
+    dest: /etc/docker/daemon.json
+    src:  daemon.json
+
+- name: restarting docker services
+  service:
+    name: docker
+    state: restarted
+
+- name: copying k8s conf file
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    src: k8s.conf
+- name: refreshing sysctl
+  shell: "sysctl --system"  
+
+- name: initializing  kubeadm service
+  shell: "kubeadm init --pod-network-cidr=10.244.0.0/16  --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+  ignore_errors: yes   
+
+- name: Creating the directory
+  file:
+    name: "$HOME/.kube"
+    state: directory
+
+- name: Copy conf file
+  command: "cp -i /etc/kubernetes/admin.conf $HOME/.kube/config"
+  ignore_errors: yes
+
+- name: Doing some required thing
+  shell: "chown $(id -u):$(id -g) $HOME/.kube/config"
+
+- name: Installing flannel
+  shell: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+
+- name: Generate join command
+  shell: "kubeadm token create --print-join-command"
+  register: join
+
+- name: debugging
+  debug:
+    var: join.stdout

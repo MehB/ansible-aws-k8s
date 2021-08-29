@@ -1,0 +1,4 @@
+- hosts: localhost
+  remote_user: root
+  roles:
+      - ec2-provision

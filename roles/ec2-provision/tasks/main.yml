@@ -1,0 +1,32 @@
+---
+  - name: launch Master Node AWS cloud
+    ec2:
+          key_name: "meb-dbi-aws"
+          instance_type: "t2.micro"
+          image: ami-013a9969a20611a43
+          wait: yes
+          count: 1
+          vpc_subnet_id: "subnet-0edacef577f0cf991"
+          group: launch-wizard-1
+          #assign_public_ip: yes
+          region: "eu-central-1"
+          state: present
+          aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY') }}"
+          aws_secret_key: "{{ lookup('env', 'AWS_SECRET_KEY') }}"
+          instance_tags: {"Name": "Master", "Cluster": "k8s Cluster"}
+  
+  - name: launch Worker Node on AWS cloud
+    ec2:
+          key_name: "meb-dbi-aws"
+          instance_type: "t2.micro"
+          image: ami-013a9969a20611a43
+          wait: yes
+          count: 2
+          vpc_subnet_id: "subnet-0edacef577f0cf991"
+          group: launch-wizard-1
+          #assign_public_ip: yes
+          region: "eu-central-1"
+          state: present
+          aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY') }}"
+          aws_secret_key: "{{ lookup('env', 'AWS_SECRET_KEY') }}"
+          instance_tags: {"Name": "Worker", "Cluster": "k8s Cluster"}
